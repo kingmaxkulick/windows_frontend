@@ -1,5 +1,5 @@
 // src/layouts/DashboardLayout.tsx
-import React from 'react';
+import React, { useState } from 'react';
 import { ThemeProvider } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import StatusBar from './components/top-bar/top-bar';
@@ -8,12 +8,17 @@ import ClimateControl from './components/nav-bar/navbar-climate-control';
 import BottomNav from './components/nav-bar/navbar-main';
 import InfoSidebar from './components/side-widgets/InfoSidebar';
 import AppContentRenderer from './components/main-window/AppContentRenderer';
+import SplashScreen from './components/splash-screen/splash-screen';
 import { useVehicleData } from './hooks/vehicle-hooks';
 import { useAppState } from './hooks/use-app-state';
 import { dashboardTheme } from './theme/theme';
 import backgroundImage from '../assets/wedgeScreen.png';
+import startupVideo from '../assets/Comp 3.MOV';
 
 const DashboardLayout = (): JSX.Element => {
+  // Splash screen state
+  const [showSplash, setShowSplash] = useState(true);
+  
   // Fetch vehicle data from backend
   const { data, isLoading, error } = useVehicleData();
   
@@ -27,8 +32,22 @@ const DashboardLayout = (): JSX.Element => {
     showMainContent
   } = useAppState();
 
+  // Function to handle splash screen completion
+  const handleSplashComplete = () => {
+    setShowSplash(false);
+  };
+
   return (
     <ThemeProvider theme={dashboardTheme}>
+      {/* Splash Screen */}
+      {showSplash && (
+        <SplashScreen
+          videoSrc={startupVideo}
+          onComplete={handleSplashComplete}
+          skipDuration={10000}
+        />
+      )}
+
       <Box
         sx={{
           width: '100vw',

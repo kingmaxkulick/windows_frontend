@@ -9,5 +9,7 @@ export default defineConfig({
   build: {
     outDir: resolve('./dist'),
     emptyOutDir: true
-  }
+  },
+  // Handle MOV and other video file formats
+  assetsInclude: ['**/*.MOV', '**/*.mov', '**/*.mp4']
 })
