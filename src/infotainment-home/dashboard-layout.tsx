@@ -13,6 +13,7 @@ import { useVehicleData } from './hooks/vehicle-hooks';
 import { useAppState } from './hooks/use-app-state';
 import { dashboardTheme } from './theme/theme';
 import backgroundImage from '../assets/wedgeScreen.png';
+// import backgroundImage from '../assets/INTERFACE RENDER.png';
 import startupVideo from '../assets/Comp 3.MOV';
 
 const DashboardLayout = (): JSX.Element => {
