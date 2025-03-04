@@ -1,6 +1,28 @@
-import React from 'react';
-import { Box, Typography, Paper, Grid, useTheme } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { 
+  Box, 
+  Typography, 
+  Paper, 
+  Grid, 
+  useTheme, 
+  Button, 
+  CircularProgress,
+  Tooltip,
+  Snackbar,
+  Alert,
+  IconButton,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
+} from '@mui/material';
 import { useVehicleData } from '../../../../hooks/vehicle-hooks';
+import { useCanLogger } from '../../../../hooks/use-can-logger';
+import SaveIcon from '@mui/icons-material/Save';
+import StopIcon from '@mui/icons-material/Stop';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import ListIcon from '@mui/icons-material/List';
 import {
   SIGNAL_THRESHOLDS,
   SIGNAL_DISPLAY_NAMES,
@@ -128,6 +150,14 @@ const KEY_METRICS = [
   }
 ];
 
+// Add types for the log files
+interface LogFile {
+  filename: string;
+  size_bytes: number;
+  created: string;
+  id: number;
+}
+
 // Group metrics by category using the centralized mappings
 const groupMetrics = (): Record<string, typeof KEY_METRICS> => {
   const grouped: Record<string, typeof KEY_METRICS> = {};
@@ -152,15 +182,96 @@ const groupMetrics = (): Record<string, typeof KEY_METRICS> => {
 };
 
 const KeyMetricsView = (): JSX.Element => {
-  const { data, isLoading, error } = useVehicleData();
+  const { data, isLoading, error: dataError } = useVehicleData();
   const theme = useTheme();
+  const { 
+    isLogging, 
+    toggleLogging, 
+    currentLogEntries, 
+    currentLogId,
+    error: loggerError,
+    getLogList,
+    downloadLog
+  } = useCanLogger();
+  
+  const [logFiles, setLogFiles] = useState<LogFile[]>([]);
+  const [menuAnchorEl, setMenuAnchorEl] = useState<null | HTMLElement>(null);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error' | 'info'>('info');
   
   // Get grouped metrics
   const groupedMetrics = groupMetrics();
   
+  // Show error in snackbar if logger has an error
+  useEffect(() => {
+    if (loggerError) {
+      setSnackbarMessage(loggerError);
+      setSnackbarSeverity('error');
+      setSnackbarOpen(true);
+    }
+  }, [loggerError]);
+  
+  // Fetch the list of log files
+  const fetchLogFiles = async () => {
+    const files = await getLogList();
+    setLogFiles(files);
+  };
+  
+  // Handle menu open/close
+  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setMenuAnchorEl(event.currentTarget);
+    fetchLogFiles();
+  };
+  
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+  };
+  
+  // Handle log file download
+  const handleDownloadLog = (logId: number) => {
+    downloadLog(logId);
+    handleMenuClose();
+    setSnackbarMessage(`Downloading log file keymetrics-${logId}.csv`);
+    setSnackbarSeverity('success');
+    setSnackbarOpen(true);
+  };
+  
+  // Handle logger toggle with feedback
+  const handleToggleLogger = async () => {
+    if (isLogging) {
+      await toggleLogging();
+      setSnackbarMessage(`Stopped logging. Saved file keymetrics-${currentLogId}.csv`);
+      setSnackbarSeverity('success');
+    } else {
+      // Get all the keys we're currently displaying
+      const keysToLog: string[] = [];
+      CATEGORY_ORDER.forEach(category => {
+        if (groupedMetrics[category]) {
+          groupedMetrics[category].forEach(metric => {
+            keysToLog.push(metric.key);
+          });
+        }
+      });
+      
+      // Only log keys that are displayed in the metrics view
+      await toggleLogging(keysToLog);
+      setSnackbarMessage(`Started logging ${keysToLog.length} signals with ID ${currentLogId + 1}`);
+      setSnackbarSeverity('info');
+    }
+    setSnackbarOpen(true);
+  };
+  
+  // Format file size for display
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
   // Function to get and format value
   const getValue = (key: string) => {
-    if (isLoading || error || !data || data[key] === undefined) {
+    if (isLoading || dataError || !data || data[key] === undefined) {
       return { 
         displayValue: "N/A", 
         isExceeding: false,
@@ -212,16 +323,140 @@ const KeyMetricsView = (): JSX.Element => {
     <Box sx={{ 
       p: 3, 
       pt: 6, 
-      height: 'calc(100% - 80px)', // Increased adjustment for navigation bar
+      height: 'calc(100% - 80px)',
       overflow: 'auto',
-      // Much more significant padding to force extra space
-      pb: 80, // Dramatically increased padding for visibility
-      marginBottom: 16 // Additional margin to create more space
+      pb: 80,
+      marginBottom: 16 
     }}>
-      <Typography variant="h4" sx={{ mb: 3 }}>
-        Key System Metrics
-      </Typography>
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 3
+      }}>
+        <Typography variant="h4">
+          Key System Metrics
+        </Typography>
+        
+        {/* Logger Controls */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Tooltip 
+            title={isLogging 
+              ? `Currently logging (${currentLogEntries} entries)` 
+              : "Start logging CAN messages"
+            }
+          >
+            <Button
+              variant="contained"
+              color={isLogging ? "error" : "primary"}
+              onClick={handleToggleLogger}
+              startIcon={isLogging ? <StopIcon /> : <SaveIcon />}
+              sx={{
+                transition: 'all 0.3s',
+                position: 'relative',
+                minWidth: '160px',
+                mr: 1
+              }}
+            >
+              {isLogging ? (
+                <>
+                  Stop Logging 
+                  <Box component="span" sx={{ ml: 1, fontSize: '0.8rem', opacity: 0.8 }}>
+                    ({currentLogEntries})
+                  </Box>
+                </>
+              ) : (
+                "Start Logging"
+              )}
+              
+              {isLogging && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: 12,
+                    transform: 'translateY(-50%)',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: 'error.main',
+                      mr: 1,
+                      animation: 'pulse 1.5s infinite',
+                      '@keyframes pulse': {
+                        '0%': {
+                          opacity: 1,
+                        },
+                        '50%': {
+                          opacity: 0.4,
+                        },
+                        '100%': {
+                          opacity: 1,
+                        },
+                      },
+                    }}
+                  />
+                </Box>
+              )}
+            </Button>
+          </Tooltip>
+          
+          {/* Menu for log files */}
+          <Tooltip title="Log files">
+            <IconButton
+              color="primary"
+              onClick={handleMenuOpen}
+              sx={{ 
+                bgcolor: theme.palette.background.paper,
+                '&:hover': { bgcolor: 'action.hover' }
+              }}
+            >
+              <ListIcon />
+            </IconButton>
+          </Tooltip>
+          
+          <Menu
+            anchorEl={menuAnchorEl}
+            open={Boolean(menuAnchorEl)}
+            onClose={handleMenuClose}
+            PaperProps={{
+              sx: { 
+                maxHeight: 300,
+                width: 300
+              }
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ px: 2, py: 1 }}>
+              Available Log Files
+            </Typography>
+            
+            {logFiles.length === 0 && (
+              <MenuItem disabled>
+                <ListItemText primary="No log files available" />
+              </MenuItem>
+            )}
+            
+            {logFiles.map((file) => (
+              <MenuItem key={file.id} onClick={() => handleDownloadLog(file.id)}>
+                <ListItemIcon>
+                  <FileDownloadIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText 
+                  primary={file.filename} 
+                  secondary={`${formatFileSize(file.size_bytes)} • ${new Date(file.created).toLocaleString()}`}
+                />
+              </MenuItem>
+            ))}
+          </Menu>
+        </Box>
+      </Box>
       
+      {/* Categories and Metrics Display */}
       {CATEGORY_ORDER.map(category => {
         if (!groupedMetrics[category] || groupedMetrics[category].length === 0) return null;
         
@@ -275,6 +510,22 @@ const KeyMetricsView = (): JSX.Element => {
           </Box>
         );
       })}
+      
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={5000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={() => setSnackbarOpen(false)} 
+          severity={snackbarSeverity}
+          sx={{ width: '100%' }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
