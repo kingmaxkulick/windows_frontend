@@ -13,13 +13,26 @@ import {
   Calendar,
   Grid as GridIcon,
   Camera,
-  Thermometer
+  Thermometer,
+  BarChart // Import the BarChart icon for Plot View
 } from 'lucide-react'
 import AppDrawer from './navbar-apps'
 
 interface BottomNavProps {
   activeApp: string | null
   onAppSelect: (app: string | null) => void
+}
+
+// Interface for the AppDrawer component
+interface AppDrawerProps {
+  open: boolean
+  onClose: () => void
+  apps: Array<{
+    icon: JSX.Element
+    label: string
+  }>
+  onAppSelect: (appLabel: string) => void
+  activeApp: string | null
 }
 
 const primaryApps = [
@@ -33,6 +46,7 @@ const secondaryApps = [
   { icon: <Car size={28} />, label: 'Controls' },
   { icon: <Phone size={28} />, label: 'Phone' },
   { icon: <Radio size={28} />, label: 'Radio' },
+  { icon: <BarChart size={28} />, label: 'Plot View' }, // Add Plot View app here
   { icon: <Calendar size={28} />, label: 'Calendar' },
   { icon: <Camera size={28} />, label: 'Camera' },
   { icon: <Settings size={28} />, label: 'Settings' }
@@ -53,6 +67,12 @@ const BottomNav = ({ activeApp, onAppSelect }: BottomNavProps): ReactElement => 
     } else {
       onAppSelect(appLabel)
     }
+  }
+
+  // Handler for app drawer selection that accepts a string only
+  const handleAppDrawerSelect = (label: string): void => {
+    handleAppClick(label)
+    setIsAppDrawerOpen(false)
   }
 
   return (
@@ -128,10 +148,7 @@ const BottomNav = ({ activeApp, onAppSelect }: BottomNavProps): ReactElement => 
         open={isAppDrawerOpen}
         onClose={() => setIsAppDrawerOpen(false)}
         apps={secondaryApps}
-        onAppSelect={(label) => {
-          handleAppClick(label)
-          setIsAppDrawerOpen(false)
-        }}
+        onAppSelect={handleAppDrawerSelect}
         activeApp={activeApp}
       />
     </>
