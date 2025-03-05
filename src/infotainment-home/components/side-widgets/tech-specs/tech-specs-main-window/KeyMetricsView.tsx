@@ -326,7 +326,13 @@ const KeyMetricsView = (): JSX.Element => {
       height: 'calc(100% - 80px)',
       overflow: 'auto',
       pb: 80,
-      marginBottom: 16 
+      marginBottom: 16,
+      // Hide scrollbar while maintaining scroll functionality
+      scrollbarWidth: 'none', // Firefox
+      '&::-webkit-scrollbar': {  // Chrome, Safari, Edge
+        display: 'none'
+      },
+      msOverflowStyle: 'none', // IE and Edge
     }}>
       <Box sx={{ 
         display: 'flex', 

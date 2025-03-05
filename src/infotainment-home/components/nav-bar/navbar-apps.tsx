@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { type ReactElement } from 'react'
 import Box from '@mui/material/Box'
@@ -60,24 +59,18 @@ const AppDrawer = ({
             borderTopRightRadius: 16,
             p: 3,
             zIndex: 1300,
-            overflowY: 'auto'
+            overflowY: 'auto',
+            // Hide scrollbar
+            scrollbarWidth: 'none', // Firefox
+            '&::-webkit-scrollbar': {  // Chrome, Safari, Edge
+              display: 'none'
+            },
+            msOverflowStyle: 'none', // IE and Edge
           }}
         >
           <Grid
             container
             spacing={2}
-            sx={{
-              '&::-webkit-scrollbar': {
-                width: 6
-              },
-              '&::-webkit-scrollbar-track': {
-                bgcolor: 'background.paper'
-              },
-              '&::-webkit-scrollbar-thumb': {
-                bgcolor: 'action.selected',
-                borderRadius: 3
-              }
-            }}
           >
             {apps.map((app) => (
               <Grid item xs={4} sm={3} key={app.label}>
@@ -99,14 +92,17 @@ const AppDrawer = ({
                   }}
                 >
                   <Stack spacing={1} alignItems="center">
-                    {app.icon}
+                    <Box sx={{ color: 'text.secondary' }}>
+                      {app.icon}
+                    </Box>
                     <Box
                       sx={{
                         typography: 'caption',
                         whiteSpace: 'nowrap',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        width: '100%'
+                        width: '100%',
+                        color: 'text.secondary', // Grey text color
                       }}
                     >
                       {app.label}

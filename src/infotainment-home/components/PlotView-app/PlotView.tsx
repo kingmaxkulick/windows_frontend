@@ -438,7 +438,13 @@ const PlotView: React.FC = () => {
     <Box sx={{ 
       width: '100%',
       height: '100%',
-      overflow: 'auto'
+      overflow: 'auto',
+      // Hide scrollbar for different browsers while maintaining functionality
+      scrollbarWidth: 'none', // Firefox
+      '&::-webkit-scrollbar': {  // Chrome, Safari, Edge
+        display: 'none'
+      },
+      msOverflowStyle: 'none', // IE and Edge
     }}>
       <Box sx={{ p: 3 }}>
         <Typography variant="h4" sx={{ mb: 3, fontSize: '2rem' }}>
@@ -516,314 +522,313 @@ const PlotView: React.FC = () => {
                       onChange={handleColumnSelect}
                       input={<OutlinedInput label="Select Signals" sx={{ fontSize: '0.875rem' }} />}
                       renderValue={(selected) => (
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap:
-                            0.5 }}>
-                            {(selected as string[]).map((value) => (
-                              <Chip key={value} label={value} size="small" sx={{ fontSize: '0.75rem' }} />
-                            ))}
-                          </Box>
-                        )}
-                        MenuProps={{
-                          PaperProps: {
-                            style: {
-                              maxHeight: 240, // Reduced height
-                            },
-                          },
-                        }}
-                      >
-                        {columns
-                          .filter(col => col !== timeColumn && columnInfo[col]?.type === 'number')
-                          .map(col => (
-                            <MenuItem key={col} value={col} sx={{ fontSize: '0.875rem' }}>
-                              <Checkbox checked={selectedColumns.indexOf(col) > -1} size="small" />
-                              <ListItemText primary={col} sx={{ fontSize: '0.875rem' }} />
-                            </MenuItem>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                          {(selected as string[]).map((value) => (
+                            <Chip key={value} label={value} size="small" sx={{ fontSize: '0.75rem' }} />
                           ))}
-                      </Select>
-                    </FormControl>
+                        </Box>
+                      )}
+                      MenuProps={{
+                        PaperProps: {
+                          style: {
+                            maxHeight: 240, // Reduced height
+                          },
+                        },
+                      }}
+                    >
+                      {columns
+                        .filter(col => col !== timeColumn && columnInfo[col]?.type === 'number')
+                        .map(col => (
+                          <MenuItem key={col} value={col} sx={{ fontSize: '0.875rem' }}>
+                            <Checkbox checked={selectedColumns.indexOf(col) > -1} size="small" />
+                            <ListItemText primary={col} sx={{ fontSize: '0.875rem' }} />
+                          </MenuItem>
+                        ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                
+                {/* Time Resolution Selection */}
+                <Grid item xs={12} md={3}>
+                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                    <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: '0.875rem' }}>
+                      Time Resolution
+                    </Typography>
+                    <ToggleButtonGroup
+                      value={timeResolution}
+                      exclusive
+                      onChange={handleTimeResolutionChange}
+                      aria-label="time resolution"
+                      disabled={columns.length === 0 || timeColumn !== 'elapsed_ms'}
+                      size="small"
+                      sx={{ justifySelf: 'flex-end' }}
+                    >
+                      <ToggleButton value="milliseconds" sx={{ fontSize: '0.75rem', padding: '4px 8px' }}>
+                        ms
+                      </ToggleButton>
+                      <ToggleButton value="seconds" sx={{ fontSize: '0.75rem', padding: '4px 8px' }}>
+                        sec
+                      </ToggleButton>
+                      <ToggleButton value="minutes" sx={{ fontSize: '0.75rem', padding: '4px 8px' }}>
+                        min
+                      </ToggleButton>
+                    </ToggleButtonGroup>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Paper>
+          </Grid>
+          
+          {/* Main Chart Container */}
+          <Grid item xs={12}>
+            <Paper elevation={2} sx={{ p: 2, height: 400 }}> {/* Reduced height */}
+              {/* Chart Title and Controls */}
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                mb: 1 
+              }}>
+                <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>
+                  {selectedColumns.length ? 'Signal Values Over Time' : 'Upload a CSV file to view data'}
+                </Typography>
+                
+                {/* Navigation Controls */}
+                {csvData.length > 0 && selectedColumns.length > 0 && (
+                  <Stack direction="row" spacing={1}>
+                    <Tooltip title="Jump to Start">
+                      <IconButton onClick={() => handleJumpToEdge('start')} size="small">
+                        <ChevronsLeft size={16} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Pan Left">
+                      <IconButton onClick={() => handlePan('left')} size="small">
+                        <ArrowLeft size={16} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Zoom Out">
+                      <IconButton onClick={handleZoomOut} size="small">
+                        <ZoomOut size={16} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Reset View">
+                      <IconButton onClick={handleResetZoom} size="small">
+                        <RefreshCw size={16} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Zoom In">
+                      <IconButton onClick={handleZoomIn} size="small">
+                        <ZoomIn size={16} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Pan Right">
+                      <IconButton onClick={() => handlePan('right')} size="small">
+                        <ArrowRight size={16} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Jump to End">
+                      <IconButton onClick={() => handleJumpToEdge('end')} size="small">
+                        <ChevronsRight size={16} />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                )}
+              </Box>
+              
+              {/* Time Range Slider */}
+              {csvData.length > 0 && selectedColumns.length > 0 && timeColumn === 'elapsed_ms' && (
+                <Box sx={{ px: 2, py: 1 }}>
+                  <Slider
+                    value={sliderValue}
+                    onChange={handleTimeRangeChange}
+                    aria-labelledby="time-range-slider"
+                    valueLabelDisplay="auto"
+                    valueLabelFormat={(value) => {
+                      const ms = (value / 100) * (globalTimeRange.end - globalTimeRange.start) + globalTimeRange.start;
+                      return formatTimeValue(convertTimeValue(ms));
+                    }}
+                    sx={{ height: 8 }} // Smaller slider height
+                  />
+                  <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between',
+                    mt: 0.5
+                  }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      {formatTimeValue(convertTimeValue(globalTimeRange.start))}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      Showing {visibleRangeFormatted} range ({percentVisible}% of total)
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                      {formatTimeValue(convertTimeValue(globalTimeRange.end))}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+              
+              {/* Main Chart */}
+              <Box 
+                sx={{ 
+                  height: 'calc(100% - 80px)', // Adjusted height
+                  width: '100%',
+                  position: 'relative',
+                }}
+              >
+                {csvData.length > 0 && selectedColumns.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart 
+                      data={chartData} 
+                      margin={{ top: 5, right: 20, left: 10, bottom: 5 }} // Reduced margins
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey={timeColumn} 
+                        tickFormatter={formatTimeValue}
+                        label={{ 
+                          value: getTimeUnitLabel(), 
+                          position: 'insideBottomRight', 
+                          offset: -10,
+                          fontSize: '0.75rem',
+                        }}
+                        type={timeColumn === 'elapsed_ms' ? 'number' : 'category'}
+                        domain={timeColumn === 'elapsed_ms' ? ['auto', 'auto'] : undefined}
+                        tick={{ fontSize: '0.75rem' }}
+                      />
+                      <YAxis 
+                        domain={yDomain}
+                        label={{ 
+                          value: 'Value', 
+                          angle: -90, 
+                          position: 'insideLeft',
+                          offset: -5,
+                          fontSize: '0.75rem',
+                        }}
+                        tickFormatter={(value) => typeof value === 'number' ? value.toFixed(2) : value}
+                        tick={{ fontSize: '0.75rem' }}
+                      />
+                      <RechartsTooltip 
+                        formatter={(value, name) => [
+                          typeof value === 'number' ? value.toFixed(2) : value,
+                          name
+                        ]}
+                        labelFormatter={(value) => {
+                          if (timeColumn === 'elapsed_ms') {
+                            return `Time: ${formatTimeValue(value)}`;
+                          }
+                          return `Time: ${value}`;
+                        }}
+                        contentStyle={{ fontSize: '0.75rem' }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
+                      {selectedColumns.map((column, index) => (
+                        <Line
+                          key={column}
+                          type="monotone"
+                          dataKey={column}
+                          stroke={COLORS[index % COLORS.length]}
+                          dot={chartData.length < 100} // Only show dots if fewer than 100 points
+                          activeDot={{ r: 6 }} // Smaller active dot
+                          name={column}
+                          strokeWidth={2}
+                        />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <Box 
+                    sx={{ 
+                      height: '100%', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center' 
+                    }}
+                  >
+                    <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+                      {csvData.length === 0 
+                        ? "Upload a CSV file to visualize data" 
+                        : "Select at least one signal to plot"}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Paper>
+          </Grid>
+          
+          {/* Data info panel with selected time range details */}
+          {csvData.length > 0 && selectedColumns.length > 0 && (
+            <Grid item xs={12}>
+              <Paper elevation={2} sx={{ p: 2 }}>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={12} sm={6}>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: '0.875rem' }}>
+                        Visible Time Range
+                      </Typography>
+                      <Typography variant="subtitle2" sx={{ fontSize: '0.875rem' }}>
+                        {formatTimeValue(convertTimeValue(timeRange.start))} — {formatTimeValue(convertTimeValue(timeRange.end))}
+                      </Typography>
+                    </Box>
                   </Grid>
                   
-                  {/* Time Resolution Selection */}
-                  <Grid item xs={12} md={3}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                  <Grid item xs={12} sm={6}>
+                    <Box>
                       <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: '0.875rem' }}>
-                        Time Resolution
+                        Points Visible
                       </Typography>
-                      <ToggleButtonGroup
-                        value={timeResolution}
-                        exclusive
-                        onChange={handleTimeResolutionChange}
-                        aria-label="time resolution"
-                        disabled={columns.length === 0 || timeColumn !== 'elapsed_ms'}
-                        size="small"
-                        sx={{ justifySelf: 'flex-end' }}
-                      >
-                        <ToggleButton value="milliseconds" sx={{ fontSize: '0.75rem', padding: '4px 8px' }}>
-                          ms
-                        </ToggleButton>
-                        <ToggleButton value="seconds" sx={{ fontSize: '0.75rem', padding: '4px 8px' }}>
-                          sec
-                        </ToggleButton>
-                        <ToggleButton value="minutes" sx={{ fontSize: '0.75rem', padding: '4px 8px' }}>
-                          min
-                        </ToggleButton>
-                      </ToggleButtonGroup>
+                      <Typography variant="subtitle2" sx={{ fontSize: '0.875rem' }}>
+                        {chartData.length} / {csvData.length} ({Math.round((chartData.length / csvData.length) * 100)}%)
+                      </Typography>
                     </Box>
                   </Grid>
                 </Grid>
               </Paper>
             </Grid>
-            
-            {/* Main Chart Container */}
+          )}
+          
+          {/* Signal Statistics */}
+          {selectedColumns.length > 0 && (
             <Grid item xs={12}>
-              <Paper elevation={2} sx={{ p: 2, height: 400 }}> {/* Reduced height */}
-                {/* Chart Title and Controls */}
-                <Box sx={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  mb: 1 
-                }}>
-                  <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>
-                    {selectedColumns.length ? 'Signal Values Over Time' : 'Upload a CSV file to view data'}
-                  </Typography>
-                  
-                  {/* Navigation Controls */}
-                  {csvData.length > 0 && selectedColumns.length > 0 && (
-                    <Stack direction="row" spacing={1}>
-                      <Tooltip title="Jump to Start">
-                        <IconButton onClick={() => handleJumpToEdge('start')} size="small">
-                          <ChevronsLeft size={16} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Pan Left">
-                        <IconButton onClick={() => handlePan('left')} size="small">
-                          <ArrowLeft size={16} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Zoom Out">
-                        <IconButton onClick={handleZoomOut} size="small">
-                          <ZoomOut size={16} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Reset View">
-                        <IconButton onClick={handleResetZoom} size="small">
-                          <RefreshCw size={16} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Zoom In">
-                        <IconButton onClick={handleZoomIn} size="small">
-                          <ZoomIn size={16} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Pan Right">
-                        <IconButton onClick={() => handlePan('right')} size="small">
-                          <ArrowRight size={16} />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Jump to End">
-                        <IconButton onClick={() => handleJumpToEdge('end')} size="small">
-                          <ChevronsRight size={16} />
-                        </IconButton>
-                      </Tooltip>
-                    </Stack>
-                  )}
-                </Box>
-                
-                {/* Time Range Slider */}
-                {csvData.length > 0 && selectedColumns.length > 0 && timeColumn === 'elapsed_ms' && (
-                  <Box sx={{ px: 2, py: 1 }}>
-                    <Slider
-                      value={sliderValue}
-                      onChange={handleTimeRangeChange}
-                      aria-labelledby="time-range-slider"
-                      valueLabelDisplay="auto"
-                      valueLabelFormat={(value) => {
-                        const ms = (value / 100) * (globalTimeRange.end - globalTimeRange.start) + globalTimeRange.start;
-                        return formatTimeValue(convertTimeValue(ms));
-                      }}
-                      sx={{ height: 8 }} // Smaller slider height
-                    />
-                    <Box sx={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between',
-                      mt: 0.5
-                    }}>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                        {formatTimeValue(convertTimeValue(globalTimeRange.start))}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                        Showing {visibleRangeFormatted} range ({percentVisible}% of total)
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                        {formatTimeValue(convertTimeValue(globalTimeRange.end))}
-                      </Typography>
-                    </Box>
-                  </Box>
-                )}
-                
-                {/* Main Chart */}
-                <Box 
-                  sx={{ 
-                    height: 'calc(100% - 80px)', // Adjusted height
-                    width: '100%',
-                    position: 'relative',
-                  }}
-                >
-                  {csvData.length > 0 && selectedColumns.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart 
-                        data={chartData} 
-                        margin={{ top: 5, right: 20, left: 10, bottom: 5 }} // Reduced margins
+              <Paper elevation={2} sx={{ p: 2 }}>
+                <Typography variant="h6" sx={{ mb: 2, fontSize: '1.125rem' }}>
+                  Signal Statistics
+                </Typography>
+                <Grid container spacing={2}>
+                  {selectedColumns.map((column, index) => (
+                    <Grid item xs={12} sm={6} md={4} lg={3} key={column}>
+                      <Paper 
+                        elevation={1} 
+                        sx={{ 
+                          p: 2, 
+                          borderLeft: `4px solid ${COLORS[index % COLORS.length]}`,
+                          height: '100%'
+                        }}
                       >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey={timeColumn} 
-                          tickFormatter={formatTimeValue}
-                          label={{ 
-                            value: getTimeUnitLabel(), 
-                            position: 'insideBottomRight', 
-                            offset: -10,
-                            fontSize: '0.75rem',
-                          }}
-                          type={timeColumn === 'elapsed_ms' ? 'number' : 'category'}
-                          domain={timeColumn === 'elapsed_ms' ? ['auto', 'auto'] : undefined}
-                          tick={{ fontSize: '0.75rem' }}
-                        />
-                        <YAxis 
-                          domain={yDomain}
-                          label={{ 
-                            value: 'Value', 
-                            angle: -90, 
-                            position: 'insideLeft',
-                            offset: -5,
-                            fontSize: '0.75rem',
-                          }}
-                          tickFormatter={(value) => typeof value === 'number' ? value.toFixed(2) : value}
-                          tick={{ fontSize: '0.75rem' }}
-                        />
-                        <RechartsTooltip 
-                          formatter={(value, name) => [
-                            typeof value === 'number' ? value.toFixed(2) : value,
-                            name
-                          ]}
-                          labelFormatter={(value) => {
-                            if (timeColumn === 'elapsed_ms') {
-                              return `Time: ${formatTimeValue(value)}`;
-                            }
-                            return `Time: ${value}`;
-                          }}
-                          contentStyle={{ fontSize: '0.75rem' }}
-                        />
-                        <Legend wrapperStyle={{ fontSize: '0.75rem' }} />
-                        {selectedColumns.map((column, index) => (
-                          <Line
-                            key={column}
-                            type="monotone"
-                            dataKey={column}
-                            stroke={COLORS[index % COLORS.length]}
-                            dot={chartData.length < 100} // Only show dots if fewer than 100 points
-                            activeDot={{ r: 6 }} // Smaller active dot
-                            name={column}
-                            strokeWidth={2}
-                          />
-                        ))}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <Box 
-                      sx={{ 
-                        height: '100%', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center' 
-                      }}
-                    >
-                      <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-                        {csvData.length === 0 
-                          ? "Upload a CSV file to visualize data" 
-                          : "Select at least one signal to plot"}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
+                        <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500, fontSize: '0.875rem' }}>
+                          {column}
+                        </Typography>
+                        <Stack spacing={1}>
+                          <Typography variant="body2" display="flex" justifyContent="space-between" sx={{ fontSize: '0.75rem' }}>
+                            <span>Min:</span> <strong>{columnInfo[column]?.min.toFixed(2)}</strong>
+                          </Typography>
+                          <Typography variant="body2" display="flex" justifyContent="space-between" sx={{ fontSize: '0.75rem' }}>
+                            <span>Max:</span> <strong>{columnInfo[column]?.max.toFixed(2)}</strong>
+                          </Typography>
+                          <Typography variant="body2" display="flex" justifyContent="space-between" sx={{ fontSize: '0.75rem' }}>
+                            <span>Avg:</span> <strong>{columnInfo[column]?.avg.toFixed(2)}</strong>
+                          </Typography>
+                        </Stack>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
               </Paper>
             </Grid>
-            
-            {/* Data info panel with selected time range details */}
-            {csvData.length > 0 && selectedColumns.length > 0 && (
-              <Grid item xs={12}>
-                <Paper elevation={2} sx={{ p: 2 }}>
-                  <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} sm={6}>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: '0.875rem' }}>
-                          Visible Time Range
-                        </Typography>
-                        <Typography variant="subtitle2" sx={{ fontSize: '0.875rem' }}>
-                          {formatTimeValue(convertTimeValue(timeRange.start))} — {formatTimeValue(convertTimeValue(timeRange.end))}
-                        </Typography>
-                      </Box>
-                    </Grid>
-                    
-                    <Grid item xs={12} sm={6}>
-                      <Box>
-                        <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: '0.875rem' }}>
-                          Points Visible
-                        </Typography>
-                        <Typography variant="subtitle2" sx={{ fontSize: '0.875rem' }}>
-                          {chartData.length} / {csvData.length} ({Math.round((chartData.length / csvData.length) * 100)}%)
-                        </Typography>
-                      </Box>
-                    </Grid>
-                  </Grid>
-                </Paper>
-              </Grid>
-            )}
-            
-            {/* Signal Statistics */}
-            {selectedColumns.length > 0 && (
-              <Grid item xs={12}>
-                <Paper elevation={2} sx={{ p: 2 }}>
-                  <Typography variant="h6" sx={{ mb: 2, fontSize: '1.125rem' }}>
-                    Signal Statistics
-                  </Typography>
-                  <Grid container spacing={2}>
-                    {selectedColumns.map((column, index) => (
-                      <Grid item xs={12} sm={6} md={4} lg={3} key={column}>
-                        <Paper 
-                          elevation={1} 
-                          sx={{ 
-                            p: 2, 
-                            borderLeft: `4px solid ${COLORS[index % COLORS.length]}`,
-                            height: '100%'
-                          }}
-                        >
-                          <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500, fontSize: '0.875rem' }}>
-                            {column}
-                          </Typography>
-                          <Stack spacing={1}>
-                            <Typography variant="body2" display="flex" justifyContent="space-between" sx={{ fontSize: '0.75rem' }}>
-                              <span>Min:</span> <strong>{columnInfo[column]?.min.toFixed(2)}</strong>
-                            </Typography>
-                            <Typography variant="body2" display="flex" justifyContent="space-between" sx={{ fontSize: '0.75rem' }}>
-                              <span>Max:</span> <strong>{columnInfo[column]?.max.toFixed(2)}</strong>
-                            </Typography>
-                            <Typography variant="body2" display="flex" justifyContent="space-between" sx={{ fontSize: '0.75rem' }}>
-                              <span>Avg:</span> <strong>{columnInfo[column]?.avg.toFixed(2)}</strong>
-                            </Typography>
-                          </Stack>
-                        </Paper>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </Paper>
-              </Grid>
-            )}
-          </Grid>
-        </Box>
+          )}
+        </Grid>
       </Box>
-    );
-  };
-  
-  export default PlotView;
+    </Box>
+  );
+};
+
+export default PlotView;
